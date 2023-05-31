@@ -26,3 +26,6 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
 )
+
+add_executable(gnss_preprocessing src/gnss_preprocessing.cpp)
+target_link_libraries(gnss_preprocessing ${catkin_LIBRARIES})
