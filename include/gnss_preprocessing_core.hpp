@@ -22,15 +22,17 @@ class GnssPreprocessingCore
 {
     public:
         //GnssPreprocessingCore();
-        GnssPreprocessingCore(ros::NodeHandle &n);
+        //GnssPreprocessingCore(ros::NodeHandle &n);
         //GnssPreprocessingCore(double lat, double lon, double hig);
-        //GnssPreprocessingCore(ros::NodeHandle &n, double lat, double lon, double hig);
+        GnssPreprocessingCore(ros::NodeHandle &n, double lat, double lon, double hig);
         ~GnssPreprocessingCore();
 
         double pi = 3.1415926535898;
         double a = 6378137.0;
         double ONE_F = 298.257223563;
         double E2 = ((1.0/ONE_F)*(2-(1.0/ONE_F)));
+
+        Eigen::Vector3d origin;
     private:
         ros::NodeHandle nh;
 
@@ -58,12 +60,20 @@ class GnssPreprocessingCore
 /***********************************************************************
  * Initialize 
  **********************************************************************/
-GnssPreprocessingCore::GnssPreprocessingCore(ros::NodeHandle &n)
+GnssPreprocessingCore::GnssPreprocessingCore(ros::NodeHandle &n, double lat, double lon, double hig)
 {
     std::cout << "GnssPreprocessingCore Start!" << std::endl;
     
+    std::cout << lat << std::endl;
+    std::cout << lon << std::endl;
+    std::cout << hig << std::endl;
+
     // ROS Node
     nh = n;
+
+    origin(0) = lat;
+    origin(1) = lon;
+    origin(2) = hig;
 
     // Publisher
     //gnss_pose_pub = nh.advertise<geometry_msgs::PoseStamped>("/gnss_pose", 10);
@@ -83,22 +93,35 @@ GnssPreprocessingCore::~GnssPreprocessingCore()
     std::cout << "GnssPreprocessingCore Finish" << std::endl;
 }
 
-Eigen::Vector3d GnssPreprocessingCore::blh2ecef(double p_deg, double l_deg, double h) {
-    double p_rad = deg2rad(p_deg);
-    double l_rad = deg2rad(l_deg);
-
-    double NN = (a / sqrt(1.0 - (E2)*pow(sin(p_rad),2)));
-
-    double x = (NN+h)*cos(p_rad)*cos(l_rad);
-    double y = (NN+h)*cos(p_rad)*sin(l_rad);
-    double z = (NN*(1-E2)+h)*sin(p_rad);
-
-    return Eigen::Vector3d(x, y, z);
-}
-
 void GnssPreprocessingCore::gnssCallback(const sensor_msgs::NavSatFixConstPtr& gnss_msg)
 {
-    std::cout << "gnss callback" << std::endl;
+    /*
+    std::cout << gnss_msg->latitude << std::endl;
+    std::cout << gnss_msg->longitude << std::endl;
+    std::cout << gnss_msg->altitude << std::endl;
+    */
+
+    /*
+    std::cout << origin(0) << std::endl;
+    std::cout << origin(1) << std::endl;
+    std::cout << origin(2) << std::endl;
+    */
+
+    // Convert lat/lon/height to ECEF
+    Eigen::Vector3d ecef_origin = blh2ecef(origin(0), origin(1), origin(2));
+    /*
+    std::cout << ecef_origin(0) << std::endl;
+    std::cout << ecef_origin(1) << std::endl;
+    std::cout << ecef_origin(2) << std::endl;
+    */
+    Eigen::Vector3d ecef = blh2ecef(gnss_msg->latitude, gnss_msg->longitude, gnss_msg->altitude);
+    
+    Eigen::Vector3d enu = ecef2enu(ecef, ecef_origin);
+    /*
+    std::cout << enu(0) << std::endl;
+    std::cout << enu(1) << std::endl;
+    std::cout << enu(2) << std::endl;
+    */
 
     /*
     data_conversion_gps(gps_msg, gps_data);
@@ -130,6 +153,19 @@ void GnssPreprocessingCore::gnssCallback(const sensor_msgs::NavSatFixConstPtr& g
     odom_to_baselink_trans.transform.rotation.w = 1.0;
     odom_to_baselink_broadcaster.sendTransform(odom_to_baselink_trans);
     */
+}
+
+Eigen::Vector3d GnssPreprocessingCore::blh2ecef(double p_deg, double l_deg, double h) {
+    double p_rad = deg2rad(p_deg);
+    double l_rad = deg2rad(l_deg);
+
+    double NN = (a / sqrt(1.0 - (E2)*pow(sin(p_rad),2)));
+
+    double x = (NN+h)*cos(p_rad)*cos(l_rad);
+    double y = (NN+h)*cos(p_rad)*sin(l_rad);
+    double z = (NN*(1-E2)+h)*sin(p_rad);
+
+    return Eigen::Vector3d(x, y, z);
 }
 
 Eigen::Vector3d GnssPreprocessingCore::ecef2blh(double x, double y, double z) {
