@@ -258,30 +258,30 @@ int GnssPreprocessingCore::blh2enu(double lat0, double lon0, double lat, double 
     static constexpr double CONSTANTS_RADIUS_OF_EARTH = 6371000; //[m]
 
     const double lat0_rad = lat0 * (M_PI / 180.0);
-	const double lon0_rad = lon0 * (M_PI / 180.0);
+    const double lon0_rad = lon0 * (M_PI / 180.0);
     const double lat_rad = lat * (M_PI / 180.0);
-	const double lon_rad = lon * (M_PI / 180.0);
-
+    const double lon_rad = lon * (M_PI / 180.0);
+    
     const double sin_lat0 = sin(lat0_rad);
-	const double cos_lat0 = cos(lat0_rad);
-	const double sin_lat = sin(lat_rad);
-	const double cos_lat = cos(lat_rad);
+    const double cos_lat0 = cos(lat0_rad);
+    const double sin_lat = sin(lat_rad);
+    const double cos_lat = cos(lat_rad);
+    
+    const double cos_d_lon = cos(lon_rad - lon0_rad);
+    
+    const double arg = constrain(sin_lat0 * sin_lat + cos_lat0 * cos_lat * cos_d_lon, -1.0,  1.0);
+    const double c = acos(arg);
+    
+    double k = 1.0;
 
-	const double cos_d_lon = cos(lon_rad - lon0_rad);
+    if (fabs(c) > 0) {
+    k = (c / sin(c));
+    }
 
-	const double arg = constrain(sin_lat0 * sin_lat + cos_lat0 * cos_lat * cos_d_lon, -1.0,  1.0);
-	const double c = acos(arg);
-
-	double k = 1.0;
-
-	if (fabs(c) > 0) {
-		k = (c / sin(c));
-	}
-
-	*x = static_cast<double>(k * (cos_lat0 * sin_lat - sin_lat0 * cos_lat * cos_d_lon) * CONSTANTS_RADIUS_OF_EARTH);
-	*y = static_cast<double>(k * cos_lat * sin(lon_rad - lon0_rad) * CONSTANTS_RADIUS_OF_EARTH);
-
-	return 0;
+    *x = static_cast<double>(k * (cos_lat0 * sin_lat - sin_lat0 * cos_lat * cos_d_lon) * CONSTANTS_RADIUS_OF_EARTH);
+    *y = static_cast<double>(k * cos_lat * sin(lon_rad - lon0_rad) * CONSTANTS_RADIUS_OF_EARTH);
+    
+    return 0;
 }
 
 double GnssPreprocessingCore::constrain(double val, double min, double max)
