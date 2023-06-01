@@ -9,5 +9,5 @@
     <!--rosbag play-->
     <node pkg="rosbag" type="play" name="player" output="screen" args="--clock /home/ramune/Downloads/utbm_robocar_dataset_20190131_noimage.bag"/>
     <!--display rviz-->
-    <!--<node name="rviz" pkg="rviz" type="rviz" args="-d $(find gnss_imu_odom_ESKF)/rviz/gps_trajectory_plotter.rviz" required="true"/>-->
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find gnss_preprocessing)/rviz/gnss_preprocessing.rviz" required="true"/>
 </launch>
