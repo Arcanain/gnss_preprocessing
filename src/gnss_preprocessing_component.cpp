@@ -1,6 +1,3 @@
-#ifndef __GNSS_PREPROCESSING_CORE_HPP__
-#define __GNSS_PREPROCESSING_CORE_HPP__
-
 #include "ros/ros.h"
 #include "tf/tf.h"
 #include "tf/transform_broadcaster.h"
@@ -16,67 +13,17 @@
 #include <Eigen/Dense>
 #include <cmath>
 
+#include "gnss_preprocessing_component.hpp"
+
 using namespace std;
-
-class GnssPreprocessingCore
-{
-    public:
-        GnssPreprocessingCore(double lat, double lon, double hig);
-        //GnssPreprocessingCore(ros::NodeHandle &n, double lat, double lon, double hig);
-        ~GnssPreprocessingCore();
-
-        double pi = 3.1415926535898;
-        double a = 6378137.0;
-        double ONE_F = 298.257223563;
-        double E2 = ((1.0/ONE_F)*(2-(1.0/ONE_F)));
-    private:
-        // ros node handle
-        ros::NodeHandle nh;
-
-        // local variable
-        double lat0;
-        double lon0;
-        double hig0;
-
-        // publisher
-        ros::Publisher gnss_pose_pub;
-        ros::Publisher gnss_path_pub;
-
-        // publish data
-        nav_msgs::Path gnss_path;
-
-        // subscriber
-        ros::Subscriber gnss_sub;
-
-        // tf publish
-        tf::TransformBroadcaster odom_to_baselink_broadcaster;
-        geometry_msgs::TransformStamped odom_to_baselink_trans;
-
-        // callback function
-        void gnssCallback(const sensor_msgs::NavSatFixConstPtr& gnss_msg);
-        
-        // convert (lat, lon, alt) to (x, y, z)
-        double deg2rad(double deg); // Convert degrees to radians
-        double rad2deg(double rad); // Convert radians to degrees
-        Eigen::Vector3d blh2ecef(double p_deg, double l_deg, double h);
-        Eigen::Vector3d ecef2blh(double x, double y, double z);
-        Eigen::Vector3d ecef2enu(Eigen::Vector3d dest, Eigen::Vector3d origin);
-        Eigen::Matrix3d rotx(double theta);
-        Eigen::Matrix3d roty(double theta);
-        Eigen::Matrix3d rotz(double theta);
-
-        // different version convert (lat, lon, alt) to (x, y, z)
-        int blh2enu(double lat0, double lon0, double lat, double lon, double *x, double *y);
-        double constrain(double val, double min, double max);
-};
 
 /***********************************************************************
  * Initialize 
  **********************************************************************/
-//GnssPreprocessingCore::GnssPreprocessingCore(ros::NodeHandle &n, double lat, double lon, double hig)
-GnssPreprocessingCore::GnssPreprocessingCore(double lat, double lon, double hig)
+//GnssPreprocessingComponent::GnssPreprocessingComponent(ros::NodeHandle &n, double lat, double lon, double hig)
+GnssPreprocessingComponent::GnssPreprocessingComponent(double lat, double lon, double hig)
 {
-    std::cout << "GnssPreprocessingCore Start!" << std::endl;
+    std::cout << "GnssPreprocessingComponent Start!" << std::endl;
     
     // init local variable
     //nh = n;
@@ -90,7 +37,7 @@ GnssPreprocessingCore::GnssPreprocessingCore(double lat, double lon, double hig)
     gnss_path_pub = nh.advertise<nav_msgs::Path>("/gnss_path", 10);
 
     // Subscriber
-    gnss_sub = nh.subscribe("/fix", 10, &GnssPreprocessingCore::gnssCallback, this);
+    gnss_sub = nh.subscribe("/fix", 10, &GnssPreprocessingComponent::gnssCallback, this);
 
     // init gnss_path
     gnss_path.header.frame_id = "map";
@@ -98,12 +45,12 @@ GnssPreprocessingCore::GnssPreprocessingCore(double lat, double lon, double hig)
     gnss_path.header.seq = 0;
 }
 
-GnssPreprocessingCore::~GnssPreprocessingCore()
+GnssPreprocessingComponent::~GnssPreprocessingComponent()
 {
-    std::cout << "GnssPreprocessingCore Finish" << std::endl;
+    std::cout << "GnssPreprocessingComponent Finish" << std::endl;
 }
 
-void GnssPreprocessingCore::gnssCallback(const sensor_msgs::NavSatFixConstPtr& gnss_msg)
+void GnssPreprocessingComponent::gnssCallback(const sensor_msgs::NavSatFixConstPtr& gnss_msg)
 {
     // Convert lat/lon/height to ECEF
     /***********************************************************************
@@ -168,7 +115,7 @@ void GnssPreprocessingCore::gnssCallback(const sensor_msgs::NavSatFixConstPtr& g
 /***********************************************************************
  * Convert (lat, lon, alt) -> (x, y, z) 
  **********************************************************************/
-Eigen::Vector3d GnssPreprocessingCore::blh2ecef(double p_deg, double l_deg, double h) {
+Eigen::Vector3d GnssPreprocessingComponent::blh2ecef(double p_deg, double l_deg, double h) {
     double p_rad = deg2rad(p_deg);
     double l_rad = deg2rad(l_deg);
 
@@ -181,7 +128,7 @@ Eigen::Vector3d GnssPreprocessingCore::blh2ecef(double p_deg, double l_deg, doub
     return Eigen::Vector3d(x, y, z);
 }
 
-Eigen::Vector3d GnssPreprocessingCore::ecef2blh(double x, double y, double z) {
+Eigen::Vector3d GnssPreprocessingComponent::ecef2blh(double x, double y, double z) {
     double b = (a * (1.0 - 1.0 / ONE_F));
     double ED2 = (E2 * pow(a, 2) / (pow(b, 2)));
     double p = sqrt(pow(x, 2) + pow(y, 2));
@@ -199,7 +146,7 @@ Eigen::Vector3d GnssPreprocessingCore::ecef2blh(double x, double y, double z) {
     return Eigen::Vector3d(lat, lon, hig);
 }
 
-Eigen::Vector3d GnssPreprocessingCore::ecef2enu(Eigen::Vector3d dest, Eigen::Vector3d origin) {
+Eigen::Vector3d GnssPreprocessingComponent::ecef2enu(Eigen::Vector3d dest, Eigen::Vector3d origin) {
     Eigen::Vector3d blh = ecef2blh(origin(0), origin(1), origin(2));
     
     Eigen::Matrix3d rotzp1 = rotz(90.0);
@@ -214,7 +161,7 @@ Eigen::Vector3d GnssPreprocessingCore::ecef2enu(Eigen::Vector3d dest, Eigen::Vec
     return mat_conv2 * mov;
 }
 
-Eigen::Matrix3d GnssPreprocessingCore::rotx(double theta) {
+Eigen::Matrix3d GnssPreprocessingComponent::rotx(double theta) {
     double rad = deg2rad(theta);
 
     Eigen::Matrix3d rotxa;
@@ -224,7 +171,7 @@ Eigen::Matrix3d GnssPreprocessingCore::rotx(double theta) {
     return rotxa;
 }
 
-Eigen::Matrix3d GnssPreprocessingCore::roty(double theta) {
+Eigen::Matrix3d GnssPreprocessingComponent::roty(double theta) {
     double rad = deg2rad(theta);
 
     Eigen::Matrix3d rotya;
@@ -234,7 +181,7 @@ Eigen::Matrix3d GnssPreprocessingCore::roty(double theta) {
     return rotya;
 }
 
-Eigen::Matrix3d GnssPreprocessingCore::rotz(double theta) {
+Eigen::Matrix3d GnssPreprocessingComponent::rotz(double theta) {
     double rad = deg2rad(theta);
 
     Eigen::Matrix3d rotza;
@@ -245,19 +192,19 @@ Eigen::Matrix3d GnssPreprocessingCore::rotz(double theta) {
 }
 
 // Convert degrees to radians
-double GnssPreprocessingCore::deg2rad(double deg) {
+double GnssPreprocessingComponent::deg2rad(double deg) {
     return deg * pi / 180.0;
 }
 
 // Convert radians to degrees
-double GnssPreprocessingCore::rad2deg(double rad) {
+double GnssPreprocessingComponent::rad2deg(double rad) {
     return rad * 180.0 / pi;
 }
 
 /***********************************************************************
  * Convert (lat, lon, alt) -> (x, y, z) 
  **********************************************************************/
-int GnssPreprocessingCore::blh2enu(double lat0, double lon0, double lat, double lon, double *x, double *y)
+int GnssPreprocessingComponent::blh2enu(double lat0, double lon0, double lat, double lon, double *x, double *y)
 {
     static constexpr double CONSTANTS_RADIUS_OF_EARTH = 6371000; //[m]
 
@@ -288,7 +235,7 @@ int GnssPreprocessingCore::blh2enu(double lat0, double lon0, double lat, double 
     return 0;
 }
 
-double GnssPreprocessingCore::constrain(double val, double min, double max)
+double GnssPreprocessingComponent::constrain(double val, double min, double max)
 {
     if (val > max) {
         return max;
@@ -298,5 +245,3 @@ double GnssPreprocessingCore::constrain(double val, double min, double max)
         return val;
     }
 }
-
-#endif  // __GNSS_PREPROCESSING_CORE_HPP__
