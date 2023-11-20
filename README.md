@@ -30,7 +30,7 @@ flowchart TD
 
 ```
 
-## StateFlow
+## State Transition Diagram
 
 ```mermaid
 stateDiagram-v2
@@ -40,6 +40,4 @@ stateDiagram-v2
     ProcessingGNSSData --> Initialized: After Callback Processing
     ProcessingGNSSData --> [*]: Destructor
     Initialized --> [*]: Destructor
-
 ```
-
