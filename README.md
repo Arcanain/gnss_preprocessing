@@ -1,3 +1,29 @@
 # gnss_preprocessing
 
-![gnss_preprocessing-2023-11-20-054519](https://github.com/Arcanain/gnss_preprocessing/assets/52307432/6710d3a3-a562-4f4d-82c2-a7d695d2eee9)
+```mermaid
+flowchart TD
+    A[Start] --> B[Initialize ROS Node: gnss_preprocessing]
+    B --> C[Create GnssPreprocessingCore Object with Initial GPS Coordinates]
+    C --> D[Set Up ROS Publishers and Subscriber]
+    D --> E[Main ROS Loop]
+    E --> F[Check if ROS is OK]
+    F -->|Yes| G[Wait for GNSS Data Callback]
+    G --> E
+    F -->|No| H[End]
+
+    subgraph GnssPreprocessingCore
+        I[Constructor: Initialize Variables and Set Up ROS Publishers and Subscriber]
+        J[gnssCallback: Process GNSS Data]
+        K[Convert Lat/Lon/Alt to ECEF Coordinates]
+        L[Convert ECEF to ENU Coordinates]
+        M[Publish GNSS Pose and Path]
+        N[Transform Broadcast: /odom to /base_link]
+    end
+
+    I --> J
+    J --> K
+    K --> L
+    L --> M
+    M --> N
+
+```
