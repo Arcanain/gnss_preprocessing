@@ -1,3 +1,14 @@
+<script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
+<script type="text/x-mathjax-config">
+ MathJax.Hub.Config({
+ tex2jax: {
+ inlineMath: [['$', '$'] ],
+ displayMath: [ ['$$','$$'], ["\\[","\\]"] ]
+ }
+ });
+</script>
+
 # gnss_preprocessing
 
 ![image](https://github.com/Arcanain/gnss_preprocessing/assets/52307432/4c48a288-4dc6-44d8-b03e-6482577bbfa8)
@@ -40,6 +51,72 @@ E = -sin(Lon * PI / 180) * (Xe - x0) + cos(Lon * PI / 180) * (Ye - y0);
 N = -sin(Lat * PI / 180) * cos(Lon * PI / 180) * (Xe - x0) - sin(Lat * PI / 180) * sin(Lon * PI / 180) * (Ye - y0) + cos(Lat * PI / 180) * (Ze - z0);
 U = cos(Lat * PI / 180) * cos(Lon * PI / 180) * (Xe - x0) + cos(Lat) * sin(Lon * PI / 180) * (Ye - y0) + sin(Lat * PI / 180) * (Ze - z0);
 ```
+
+### 一般的なBLHからENUへの変換
+
+BLHからENUへの変換は、以下の一般的な手順に従って行われます。
+
+1. **緯度経度をECEF座標に変換**：
+   地球中心固定座標系（ECEF）に変換することで、地球中心からの3次元座標を得ます。
+   
+   ```math
+   \begin{align*}
+   X &= (N + h) \cos(\phi) \cos(\lambda) \\
+   Y &= (N + h) \cos(\phi) \sin(\lambda) \\
+   Z &= \left( N \left( 1 - e^2 \right) + h \right) \sin(\phi)
+   \end{align*}
+   ```
+   ここで、\( N = \frac{a}{\sqrt{1 - e^2 \sin^2(\phi)}} \) は曲率半径、\( \phi \) は緯度、\( \lambda \) は経度、\( h \) は高さ、\( a \) は地球の半径、\( e \) は地球の離心率です。
+   
+3. **ECEF座標をENU座標に変換**：
+   基準点（参照点）からの相対位置を計算し、回転行列を使ってENU座標に変換します。
+   ```masth
+   \begin{align*}
+   E &= -\sin(\lambda) \Delta X + \cos(\lambda) \Delta Y \\
+   N &= -\sin(\phi) \cos(\lambda) \Delta X - \sin(\phi) \sin(\lambda) \Delta Y + \cos(\phi) \Delta Z \\
+   U &= \cos(\phi) \cos(\lambda) \Delta X + \cos(\phi) \sin(\lambda) \Delta Y + \sin(\phi) \Delta Z
+   \end{align*}
+   ```
+   ここで、\( \Delta X \)、\( \Delta Y \)、\( \Delta Z \) はECEF座標の差分です。
+
+数式：
+```math
+E = -\sin(\text{Lon} \cdot \frac{\pi}{180}) \cdot (X_e - x_0) + \cos(\text{Lon} \cdot \frac{\pi}{180}) \cdot (Y_e - y_0)
+```
+```math
+N = -\sin(\text{Lat} \cdot \frac{\pi}{180}) \cdot \cos(\text{Lon} \cdot \frac{\pi}{180}) \cdot (X_e - x_0) - \sin(\text{Lat} \cdot \frac{\pi}{180}) \cdot \sin(\text{Lon} \cdot \frac{\pi}{180}) \cdot (Y_e - y_0) + \cos(\text{Lat} \cdot \frac{\pi}{180}) \cdot (Z_e - z_0)
+```
+```math
+U = \cos(\text{Lat} \cdot \frac{\pi}{180}) \cdot \cos(\text{Lon} \cdot \frac{\pi}{180}) \cdot (X_e - x_0) + \cos(\text{Lat} \cdot \frac{\pi}{180}) \cdot \sin(\text{Lon} \cdot \frac{\pi}{180}) \cdot (Y_e - y_0) + \sin(\text{Lat} \cdot \frac{\pi}{180}) \cdot (Z_e - z_0) 
+```
+
+回転行列：
+
+```math
+\begin{bmatrix}
+E \\
+N \\
+U
+\end{bmatrix}
+=
+\begin{bmatrix}
+-\sin(\text{Lon}_\text{ref}) & \cos(\text{Lon}_\text{ref}) & 0 \\
+-\sin(\text{Lat}_\text{ref}) \cos(\text{Lon}_\text{ref}) & -\sin(\text{Lat}_\text{ref}) \sin(\text{Lon}_\text{ref}) & \cos(\text{Lat}_\text{ref}) \\
+\cos(\text{Lat}_\text{ref}) \cos(\text{Lon}_\text{ref}) & \cos(\text{Lat}_\text{ref}) \sin(\text{Lon}_\text{ref}) & \sin(\text{Lat}_\text{ref})
+\end{bmatrix}
+\begin{bmatrix}
+\Delta X \\
+\Delta Y \\
+\Delta Z
+\end{bmatrix}
+```
+
+このように、回転行列はECEF座標差分（\(\Delta X, \Delta Y, \Delta Z\)）を用いて、ENU座標を計算するためのものです。したがって、上記の数式は回転行列に基づいています。
+
+### まとめ
+
+BLHからENUへの変換は、緯度経度高さを使用して地球の表面上の点の位置を平面座標に変換する方法です。これは、測地学や地理学の基本的な技術であり、GPSデータの処理や地図上での位置表示に不可欠です。上記の数式は、この変換を正確に行うために必要な数学的な基礎を提供します。
+
 
 https://memo--randum.blogspot.com/2010/06/gps.html
 
